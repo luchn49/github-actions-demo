@@ -1,0 +1,25 @@
+name: Tag on Merge
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  tag-and-push:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      - name: Create tag
+        run: |
+          TAG_NAME="release-${{ env.sha_short }}"
+          git tag "$TAG_NAME"
+          git push origin "$TAG_NAME"
