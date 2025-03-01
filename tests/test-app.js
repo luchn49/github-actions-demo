@@ -22,3 +22,6 @@ describe('GET /', () => {
       });
   });
 });
+
+
+// Test create tag on merging PR
