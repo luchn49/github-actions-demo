@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixes since last major/minor version bump
 
+## 1.8.0
+
+### Added
+
+- Release 1.8.0
+
+### Changed
+
+- Changed the release workflow to use the `release` action
+
 ## 1.7.0
 
 ### Added
