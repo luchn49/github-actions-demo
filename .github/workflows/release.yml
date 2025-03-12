@@ -47,13 +47,24 @@ jobs:
 
       - name: Extract changelog section
         run: |
-          awk "/## ${{ env.VERSION }}/,/## /" CHANGELOG.md | head -n -1 > release-notes.md || echo "No changelog entry found" > release-notes.md
+          echo "**@${{ env.PACKAGE_NAME }}@${{ env.VERSION }}**" > release-notes.md
+          echo "" >> release-notes.md
+          awk "/## ${{ env.VERSION }}/,/## /" CHANGELOG.md | head -n -1 >> release-notes.md
+          echo "" >> release-notes.md
+
+          # Append contributors (optional, requires commit authors)
+          CONTRIBUTORS=$(git log --pretty=format:"- %an" $(git describe --tags --abbrev=0)..HEAD | sort -u)
+          echo "**Contributors**" >> release-notes.md
+          echo "" >> release-notes.md
+          echo "$CONTRIBUTORS" >> release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: Release ${{ env.VERSION }}
+          name: ${{ env.VERSION }}
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+          files: |
+            dist/*.tgz
