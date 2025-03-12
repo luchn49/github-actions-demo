@@ -47,7 +47,7 @@ jobs:
 
       - name: Extract changelog section
         run: |
-          awk "/## \\[${{ env.VERSION }}\\]/,/## \\[/" CHANGELOG.md | sed '$d' > release-notes.md || echo "No changelog entry found" > release-notes.md
+          awk "/## ${{ env.VERSION }}/,/## /" CHANGELOG.md | head -n -1 > release-notes.md || echo "No changelog entry found" > release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
