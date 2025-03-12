@@ -37,23 +37,26 @@ jobs:
             echo "Tag already exists: $TAG_NAME"
           fi
 
-      - name: Extract changelog section
+      - name: Extract changelog section with commit hash
         run: |
           VERSION=${{ env.VERSION }}
           TODAY=$(date '+%Y-%m-%d')
+          COMMIT=$(git rev-parse --short HEAD)
 
-          # 1. Print "vX.Y.Z (YYYY-MM-DD)" on the first line
+          # 1. Write header with version and date
           echo "v${VERSION} (${TODAY})" > release-notes.md
           echo "" >> release-notes.md
 
-          # 2. Extract everything after "## X.Y.Z" until the next "## " heading
-          #    Skips printing the heading line itself
+          # 2. Extract changelog content after the version heading from CHANGELOG.md
           awk -v version="$VERSION" '
             BEGIN { found=0 }
             $0 ~ ("^## " version"$") { found=1; next }
             /^## / && found { exit }
             found
           ' CHANGELOG.md >> release-notes.md
+
+          # 3. Append the short commit hash to each bullet line
+          sed -i -E "s/^( *- .+)/\1 (${COMMIT})/" release-notes.md
 
           echo "=== RELEASE NOTES PREVIEW ==="
           cat release-notes.md
