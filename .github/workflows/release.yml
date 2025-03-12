@@ -47,24 +47,24 @@ jobs:
 
       - name: Extract changelog section
         run: |
-          echo "**@${{ env.PACKAGE_NAME }}@${{ env.VERSION }}**" > release-notes.md
+          echo "## v${{ env.VERSION }}" > release-notes.md
           echo "" >> release-notes.md
+          
           awk "/## ${{ env.VERSION }}/,/## /" CHANGELOG.md | head -n -1 >> release-notes.md
           echo "" >> release-notes.md
 
-          # Append contributors (optional, requires commit authors)
-          CONTRIBUTORS=$(git log --pretty=format:"- %an" $(git describe --tags --abbrev=0)..HEAD | sort -u)
           echo "**Contributors**" >> release-notes.md
           echo "" >> release-notes.md
-          echo "$CONTRIBUTORS" >> release-notes.md
+          git log --pretty=format:"- %an" $(git describe --tags --abbrev=0)..HEAD | sort -u >> release-notes.md
+
+          echo "Generated Release Notes:"
+          cat release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: ${{ env.VERSION }}
+          name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}" # Fix title format
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
-          files: |
-            dist/*.tgz
