@@ -32,18 +32,15 @@ jobs:
             echo "Tag already exists: $TAG_NAME"
             exit 1
           fi
-
           git tag $TAG_NAME
           git push origin $TAG_NAME
 
       - name: Generate release notes
-        if: ${{ !cancelled() }}
         run: node scripts/extract-release-notes.js
         env:
           VERSION: ${{ env.VERSION }}
 
       - name: Create GitHub Release
-        if: ${{ !cancelled() }}
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
@@ -54,7 +51,6 @@ jobs:
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
 
       - name: Post release link to summary
-        if: ${{ !cancelled() }}
         run: |
           echo "### Release published" >> $GITHUB_STEP_SUMMARY
           echo "[View on GitHub](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY

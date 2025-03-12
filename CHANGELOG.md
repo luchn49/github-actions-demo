@@ -7,8 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixes since last major/minor version bump
 
+## 1.13.0
+
 ### Added
 
+- Release 1.13.0
 - Added `extract-release-notes.js` script to extract release notes from the changelog
 
 ## 1.12.0
