@@ -39,38 +39,26 @@ jobs:
 
       - name: Extract changelog section
         run: |
-          # 1. Start the release notes with "## vX.Y.Z"
           echo "## v${{ env.VERSION }}" > release-notes.md
           echo "" >> release-notes.md
 
-          # 2. Use awk to capture lines AFTER "## X.Y.Z" until the next "## " heading
           awk -v version="${{ env.VERSION }}" '
             BEGIN { found=0 }
-            # If line matches "## <version>" exactly, enable printing from the next line
             $0 ~ ("^## " version"$") { found=1; next }
-
-            # Stop printing when we encounter the next heading
             /^## / && found { exit }
-
-            # Print only while found=1
             found
           ' CHANGELOG.md >> release-notes.md
 
-          # 3. Append a contributors section (optional)
-          echo "" >> release-notes.md
+          echo "" >> release-notes.md  # ensure trailing newline
           echo "**Contributors**" >> release-notes.md
           echo "" >> release-notes.md
           git log --pretty=format:"- %an" $(git describe --tags --abbrev=0)..HEAD | sort -u >> release-notes.md
-
-          # Debug output
-          echo "=== RELEASE NOTES PREVIEW ==="
-          cat release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}"  # e.g. "github-actions-demo v1.6.0"
-          body_path: release-notes.md
+          name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}"
+          body_path: "./release-notes.md"
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
