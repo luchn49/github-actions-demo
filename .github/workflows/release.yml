@@ -3,10 +3,10 @@ name: Release
 on:
   push:
     tags:
-      - "v*" # Triggers on version tags like v1.0.0
+      - "*/*" # Matches 'pkgname/v1.2.3'
 
 permissions:
-  contents: write # Required for creating releases
+  contents: write
 
 jobs:
   release:
@@ -17,23 +17,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Extract release version
-        id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
-
-      - name: Generate changelog
+      - name: Extract package info
+        id: package_info
         run: |
-          echo "## Changelog" > release-notes.md
-          echo "" >> release-notes.md
-          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 @^)..@ >> release-notes.md
+          PACKAGE_NAME=$(jq -r .name package.json)
+          VERSION=$(jq -r .version package.json)
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+
+      - name: Extract changelog section
+        run: |
+          awk "/## \\[${VERSION}\\]/,/## \\[/" CHANGELOG.md | sed '$d' > release-notes.md || echo "No changelog entry found" > release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.VERSION }}
+          tag_name: ${{ github.ref_name }}
           name: Release ${{ env.VERSION }}
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
           files: |
-            dist/*.tgz # Adjust to match your build artifacts
+            dist/*.tgz
