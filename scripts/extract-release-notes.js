@@ -46,7 +46,7 @@ const sectionLines = lines.slice(startLine + 1, endLine);
 // Function to get the short commit hash for a specific line number in the file
 function getCommitHashForLine(lineNumber) {
   try {
-    const cmd = `git blame -L ${lineNumber},${lineNumber} --line-porcelain ${changelogFile}`;
+    const cmd = `git blame -L ${lineNumber},${lineNumber} --line-porcelain ${CHANGELOG_FILE}`;
     const result = execSync(cmd, {encoding: "utf8"});
     const match = result.match(/^commit (\w+)/m);
     if (match) {

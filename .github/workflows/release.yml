@@ -49,8 +49,3 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
-
-      - name: Post release link to summary
-        run: |
-          echo "### Release published" >> $GITHUB_STEP_SUMMARY
-          echo "[View on GitHub](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
