@@ -11,9 +11,8 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -29,69 +28,33 @@ jobs:
 
       - name: Create and push tag
         run: |
-          # Only create tag if it doesn't exist
-          if ! git rev-parse "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
-            git tag $TAG_NAME
-            git push origin $TAG_NAME
-          else
+          if git rev-parse "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
             echo "Tag already exists: $TAG_NAME"
-          fi
-
-      - name: Extract changelog section with per-bullet commit hashes
-        run: |
-          VERSION=${{ env.VERSION }}
-          TODAY=$(date '+%Y-%m-%d')
-
-          # Find the start line for the version header (e.g. "## 1.7.0")
-          start=$(grep -n "^## ${VERSION}$" CHANGELOG.md | cut -d: -f1)
-          if [ -z "$start" ]; then
-            echo "Version header not found in CHANGELOG.md"
             exit 1
           fi
 
-          # Find the next header line after the version header
-          end=$(grep -n "^## " CHANGELOG.md | awk -F: -v start="$start" '$1 > start { print $1; exit }')
-          if [ -z "$end" ]; then
-            end=$(wc -l < CHANGELOG.md)
-          fi
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
 
-          # Write header with version and date
-          echo "v${VERSION} (${TODAY})" > release-notes.md
-          echo "" >> release-notes.md
-
-          # Extract lines between the version header and the next header.
-          # We skip the header line itself.
-          awk -v s="$start" -v e="$end" 'NR > s && NR < e' CHANGELOG.md > changelog_section.txt
-
-          # Process each line and, if it's a bullet, append the short commit hash.
-          while IFS= read -r line; do
-            if [[ $line =~ ^[[:space:]]*-[[:space:]] ]]; then
-              # Locate the line number for this bullet within the version section
-              lineno=$(grep -F -n "$line" CHANGELOG.md | awk -F: -v s="$start" -v e="$end" '$1 >= s && $1 < e { print $1; exit }')
-              if [ -n "$lineno" ]; then
-                commit=$(git blame -L ${lineno},${lineno} --line-porcelain CHANGELOG.md | grep '^commit ' | head -n1 | cut -d' ' -f2 | cut -c1-7)
-                echo "${line} (${commit})" >> release-notes.md
-              else
-                echo "$line" >> release-notes.md
-              fi
-            else
-              echo "$line" >> release-notes.md
-            fi
-          done < changelog_section.txt
-
-          echo "=== RELEASE NOTES PREVIEW ==="
-          cat release-notes.md
+      - name: Generate release notes
+        if: ${{ !cancelled() }}
+        run: node scripts/extract-release-notes.js
+        env:
+          VERSION: ${{ env.VERSION }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        if: ${{ !cancelled() }}
         id: create_release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
           name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}"
-          body_path: "./release-notes.md"
+          body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
 
       - name: Post release link to summary
-        if: always()
-        run: echo "### Release published\n[View on GitHub](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
+        if: ${{ !cancelled() }}
+        run: |
+          echo "### Release published" >> $GITHUB_STEP_SUMMARY
+          echo "[View on GitHub](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
