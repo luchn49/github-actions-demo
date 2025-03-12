@@ -1,0 +1,39 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*" # Triggers on version tags like v1.0.0
+
+permissions:
+  contents: write # Required for creating releases
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract release version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Generate changelog
+        run: |
+          echo "## Changelog" > release-notes.md
+          echo "" >> release-notes.md
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 @^)..@ >> release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: Release ${{ env.VERSION }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+          files: |
+            dist/*.tgz # Adjust to match your build artifacts
