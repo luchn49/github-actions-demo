@@ -3,68 +3,61 @@ name: Release
 on:
   push:
     branches:
-      - master # Runs when changes are pushed to master
+      - master
 
 permissions:
-  contents: write # Required to push tags & create releases
+  contents: write
 
 jobs:
   release:
-    name: Create Tag & GitHub Release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Needed for extracting changelog history
+          fetch-depth: 0
 
       - name: Extract package info
-        id: package_info
+        id: pkg
         run: |
           PACKAGE_NAME=$(jq -r .name package.json)
           VERSION=$(jq -r .version package.json)
-          TAG_NAME="$PACKAGE_NAME/v$VERSION"
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
-
-      - name: Check if tag exists
-        id: check_tag
-        run: |
-          if git rev-parse "refs/tags/${{ env.TAG_NAME }}" >/dev/null 2>&1; then
-            echo "Tag already exists. Skipping tagging."
-            echo "EXISTS=true" >> $GITHUB_ENV
-          else
-            echo "EXISTS=false" >> $GITHUB_ENV
-          fi
+          echo "TAG_NAME=$PACKAGE_NAME/v$VERSION" >> $GITHUB_ENV
 
       - name: Create and push tag
-        if: env.EXISTS == 'false'
         run: |
-          git tag ${{ env.TAG_NAME }}
-          git push origin ${{ env.TAG_NAME }}
+          # Only create tag if it doesn't exist
+          if ! git rev-parse "refs/tags/${TAG_NAME}" >/dev/null 2>&1; then
+            git tag $TAG_NAME
+            git push origin $TAG_NAME
+          else
+            echo "Tag already exists: $TAG_NAME"
+          fi
 
       - name: Extract changelog section
         run: |
           echo "## v${{ env.VERSION }}" > release-notes.md
           echo "" >> release-notes.md
-          
-          awk "/## ${{ env.VERSION }}/,/## /" CHANGELOG.md | head -n -1 >> release-notes.md
-          echo "" >> release-notes.md
 
+          awk -v version="${{ env.VERSION }}" '
+            $0 ~ ("^## " version"\\b") {flag=1; next}
+            /^## / && flag {flag=0}
+            flag
+          ' CHANGELOG.md >> release-notes.md
+
+          echo "" >> release-notes.md
           echo "**Contributors**" >> release-notes.md
           echo "" >> release-notes.md
           git log --pretty=format:"- %an" $(git describe --tags --abbrev=0)..HEAD | sort -u >> release-notes.md
-
-          echo "Generated Release Notes:"
-          cat release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}" # Fix title format
+          name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}"
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
