@@ -2,40 +2,58 @@ name: Release
 
 on:
   push:
-    tags:
-      - "*/*" # Matches 'pkgname/v1.2.3'
+    branches:
+      - master # Runs when changes are pushed to master
 
 permissions:
-  contents: write
+  contents: write # Required to push tags & create releases
 
 jobs:
   release:
-    name: Create GitHub Release
+    name: Create Tag & GitHub Release
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for extracting changelog history
 
       - name: Extract package info
         id: package_info
         run: |
           PACKAGE_NAME=$(jq -r .name package.json)
           VERSION=$(jq -r .version package.json)
+          TAG_NAME="$PACKAGE_NAME/v$VERSION"
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+
+      - name: Check if tag exists
+        id: check_tag
+        run: |
+          if git rev-parse "refs/tags/${{ env.TAG_NAME }}" >/dev/null 2>&1; then
+            echo "Tag already exists. Skipping tagging."
+            echo "EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "EXISTS=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create and push tag
+        if: env.EXISTS == 'false'
+        run: |
+          git tag ${{ env.TAG_NAME }}
+          git push origin ${{ env.TAG_NAME }}
 
       - name: Extract changelog section
         run: |
-          awk "/## \\[${VERSION}\\]/,/## \\[/" CHANGELOG.md | sed '$d' > release-notes.md || echo "No changelog entry found" > release-notes.md
+          awk "/## \\[${{ env.VERSION }}\\]/,/## \\[/" CHANGELOG.md | sed '$d' > release-notes.md || echo "No changelog entry found" > release-notes.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name: ${{ env.TAG_NAME }}
           name: Release ${{ env.VERSION }}
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
-          files: |
-            dist/*.tgz

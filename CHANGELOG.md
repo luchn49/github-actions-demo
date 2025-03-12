@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Fixes since last major/minor version bump
 
+## 1.3.0
+
+- Release 1.3.0
+
+## 1.2.0
+
+- Release 1.2.0
+
 ## 1.1.0
 
 ### Added
@@ -18,7 +26,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - First release
-## [1.1.0] - 2025-03-13
-
-## [1.1.1] - 2025-03-13
-- Update
