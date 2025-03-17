@@ -20,15 +20,21 @@ jobs:
       - name: Extract package info
         id: pkg
         run: |
-          packages=[{"name":"spark-redux","group":"apx","owner":"frontend-core","qualifiedName":"@axon-enterprise/spark-redux","location":"components/spark-redux","version":"5.0.1","private":false,"hasBuild":true,"hasE2e":false,"isElectron":false,"isDockerizable":false,"isPublishable":true,"dependencies":[],"hasWorkspaceDependents":false,"isIndependent":true,"isDirectlyChanged":true,"isAffected":false}]
-
-          PACKAGE='${{ fromJson(steps.get-packages.outputs.packages) }}'
-          PACKAGE_NAME=$(echo "$PACKAGES_JSON" | jq '.qualifiedName')
-          PACKAGE_VERSION=$(echo "$PACKAGES_JSON" | jq '.version')
-
+          # Define package info as a JSON string
+          PACKAGES=['{"name":"spark-redux","group":"apx","owner":"frontend-core","qualifiedName":"@axon-enterprise/spark-redux","location":"components/spark-redux","version":"5.0.1","private":false,"hasBuild":true,"hasE2e":false,"isElectron":false,"isDockerizable":false,"isPublishable":true,"dependencies":[],"hasWorkspaceDependents":false,"isIndependent":true,"isDirectlyChanged":true,"isAffected":false}']
+          
+          # Extract values using jq
+          PACKAGE_NAME=$(echo "$PACKAGES" | jq -r '.[0].qualifiedName')
+          PACKAGE_VERSION=$(echo "$PACKAGES" | jq -r '.[0].version')
+          
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> "$GITHUB_ENV"
           echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> "$GITHUB_ENV"
-          echo "TAG_NAME=$PACKAGE_NAME/v$VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=${PACKAGE_NAME}/v${PACKAGE_VERSION}" >> "$GITHUB_ENV"
+          
+          # For debugging
+          echo "Package Name: $PACKAGE_NAME"
+          echo "Package Version: $PACKAGE_VERSION"
+          echo "Tag Name: ${PACKAGE_NAME}/v${PACKAGE_VERSION}"
 
       - name: Create and push tag
         run: |
@@ -42,17 +48,17 @@ jobs:
       - name: Generate release notes
         run: npx ts-node scripts/generate-release-notes.ts
         env:
-          VERSION: ${{ env.VERSION }}
+          VERSION: ${{ env.PACKAGE_VERSION }}
 
       - name: Create GitHub Release
         id: create_release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.TAG_NAME }}
-          name: "${{ env.PACKAGE_NAME }} v${{ env.VERSION }}"
+          name: "${{ env.PACKAGE_NAME }} v${{ env.PACKAGE_VERSION }}"
           body_path: release-notes.md
           draft: false
-          prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+          prerelease: ${{ contains(env.PACKAGE_VERSION, 'beta') || contains(env.PACKAGE_VERSION, 'rc') }}
 
       - name: Post release link to summary
         run: |
