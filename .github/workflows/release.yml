@@ -20,6 +20,8 @@ jobs:
       - name: Extract package info
         id: pkg
         run: |
+          ::set-output name=packages::[{"name":"spark-redux","group":"apx","owner":"frontend-core","qualifiedName":"@axon-enterprise/spark-redux","location":"components/spark-redux","version":"5.0.1","private":false,"hasBuild":true,"hasE2e":false,"isElectron":false,"isDockerizable":false,"isPublishable":true,"dependencies":[],"hasWorkspaceDependents":false,"isIndependent":true,"isDirectlyChanged":true,"isAffected":false}]
+
           PACKAGE_NAME=$(jq -r .name package.json)
           VERSION=$(jq -r .version package.json)
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
@@ -36,7 +38,7 @@ jobs:
           git push origin $TAG_NAME
 
       - name: Generate release notes
-        run: node scripts/generate-release-notes.js
+        run: npx ts-node scripts/generate-release-notes.ts
         env:
           VERSION: ${{ env.VERSION }}
 
