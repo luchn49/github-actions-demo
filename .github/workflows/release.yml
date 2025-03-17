@@ -20,12 +20,14 @@ jobs:
       - name: Extract package info
         id: pkg
         run: |
-          ::set-output name=packages::[{"name":"spark-redux","group":"apx","owner":"frontend-core","qualifiedName":"@axon-enterprise/spark-redux","location":"components/spark-redux","version":"5.0.1","private":false,"hasBuild":true,"hasE2e":false,"isElectron":false,"isDockerizable":false,"isPublishable":true,"dependencies":[],"hasWorkspaceDependents":false,"isIndependent":true,"isDirectlyChanged":true,"isAffected":false}]
+          packages=[{"name":"spark-redux","group":"apx","owner":"frontend-core","qualifiedName":"@axon-enterprise/spark-redux","location":"components/spark-redux","version":"5.0.1","private":false,"hasBuild":true,"hasE2e":false,"isElectron":false,"isDockerizable":false,"isPublishable":true,"dependencies":[],"hasWorkspaceDependents":false,"isIndependent":true,"isDirectlyChanged":true,"isAffected":false}]
 
-          PACKAGE_NAME=$(jq -r .name package.json)
-          VERSION=$(jq -r .version package.json)
-          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          PACKAGE='${{ fromJson(steps.get-packages.outputs.packages) }}'
+          PACKAGE_NAME=$(echo "$PACKAGES_JSON" | jq '.qualifiedName')
+          PACKAGE_VERSION=$(echo "$PACKAGES_JSON" | jq '.version')
+
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> "$GITHUB_ENV"
+          echo "PACKAGE_VERSION=$PACKAGE_VERSION" >> "$GITHUB_ENV"
           echo "TAG_NAME=$PACKAGE_NAME/v$VERSION" >> $GITHUB_ENV
 
       - name: Create and push tag
