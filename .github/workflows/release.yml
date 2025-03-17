@@ -36,7 +36,7 @@ jobs:
           git push origin $TAG_NAME
 
       - name: Generate release notes
-        run: node scripts/extract-release-notes.js
+        run: node scripts/generate-release-notes.js
         env:
           VERSION: ${{ env.VERSION }}
 
@@ -49,3 +49,8 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: ${{ contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+
+      - name: Post release link to summary
+        run: |
+          echo "### Release published" >> $GITHUB_STEP_SUMMARY
+          echo "[View on GitHub](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
