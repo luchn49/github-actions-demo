@@ -22,4 +22,4 @@ jobs:
         run: |
           TAG_NAME="release-${{ env.sha_short }}"
           git tag "$TAG_NAME"
-          git push origin "$TAG_NAME"
+          git push origin --tags
